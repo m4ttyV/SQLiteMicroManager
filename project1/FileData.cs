@@ -72,7 +72,7 @@ namespace project1
     {
         private readonly string _connectionString;
         // Для удобства вынес названия таблиц в переменные чтобы проще было менять (название колонок можно также вынести, но мне было лень)
-        private readonly string water_object_table_name = "Water_object";
+        public readonly string water_object_table_name = "Water_object";
         private readonly string site_table_name = "Site";
         private readonly string variables_table_name = "variable";
         private readonly string units_table_name = "unit";
@@ -106,7 +106,7 @@ namespace project1
             using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
-                string query = "SELECT id, Name, UnitID FROM " + variables_table_name;  // Замените на ваш запрос
+                string query = "SELECT Id, Name, UnitID FROM " + variables_table_name;  
                 using (var cmd = new SqliteCommand(query, conn))
                 {
                     using (var reader = cmd.ExecuteReader())
@@ -131,7 +131,7 @@ namespace project1
             using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
-                string query = "SELECT Id, unit_Name FROM " + units_table_name;  // Замените на ваш запрос
+                string query = "SELECT Id, unit_Name FROM " + units_table_name; 
                 using (var cmd = new SqliteCommand(query, conn))
                 {
                     using (var reader = cmd.ExecuteReader())
@@ -155,7 +155,7 @@ namespace project1
             using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
-                string query = "SELECT Id, Name FROM " + water_object_table_name;  // Замените на ваш запрос
+                string query = "SELECT Id, Name FROM " + water_object_table_name; 
                 using (var cmd = new SqliteCommand(query, conn))
                 {
                     using (var reader = cmd.ExecuteReader())
@@ -173,35 +173,48 @@ namespace project1
             return waterObjects;
         }
 
-        public void InsertMainTableData(List<main_table> dataList)
+        public void InsertMainTableData(main_table data)
         {
             using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
-                // Вот можно по аналогии с этой строкой заменить dtS и dtA на {dtS} и {dtA} и т.п. а будущий кодер сможет их менять
-                // в самом начале этого файла и ему не придётся бегать по всему файлу
                 string query = $@"
                 INSERT INTO {main_table_table_name} (dtS, dtA, site_ID, var_ID, value, setting_ID)
                 VALUES (@dtS, @dtA, @site_ID, @var_ID, @value, @setting_ID)";
-
                 using (var cmd = new SqliteCommand(query, conn))
                 {
-                    foreach (var data in dataList)
-                    {
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@dtS", data.dtS.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.Parameters.AddWithValue("@dtA", data.dtA.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.Parameters.AddWithValue("@site_ID", data.site_ID);
-                        cmd.Parameters.AddWithValue("@var_ID", data.var_ID);
-                        cmd.Parameters.AddWithValue("@value", data.value);
-                        cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : DBNull.Value);
-
-                        cmd.ExecuteNonQuery();
-                    }
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@dtS", data.dtS.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@dtA", data.dtA.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@site_ID", data.site_ID);
+                    cmd.Parameters.AddWithValue("@var_ID", data.var_ID);
+                    cmd.Parameters.AddWithValue("@value", data.value);
+                    cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : DBNull.Value);
+                    cmd.ExecuteNonQuery();                    
                 }
             }
         }
-        public void InsertWaterObjectData(Dictionary <string, int> dataList, int x) //Здесь, в Variable и в Units целочисленная переменная нужна чтобы
+        //site maintable
+        public int get_last_index(string table_name)
+        {
+            using (var conn = new SqliteConnection(_connectionString))
+            {
+                bool check = false;
+                int id = 0;
+                conn.Open();
+                string query = "SELECT MAX(Id) FROM " + table_name; 
+                using (var cmd = new SqliteCommand(query, conn))
+                    using (var reader = cmd.ExecuteReader())
+                        while (reader.Read())
+                        {
+                            check = reader.IsDBNull(0);
+                            if  (!check)
+                                id = reader.GetInt32(0);   // Чтение id      
+                        }                     
+                return id;
+            }
+        }
+        public void InsertWaterObjectData(string data) //Здесь, в Variable и в Units целочисленная переменная нужна чтобы
                                                                                     //сделать поправку на уже имеющиеся данные чтобы избежать их дублирования
         {
             using (var conn = new SqliteConnection(_connectionString))
@@ -210,25 +223,15 @@ namespace project1
                 string query = $@"
                 INSERT INTO {water_object_table_name} (Name)
                 VALUES (@Name)";
-
                 using (var cmd = new SqliteCommand(query, conn))
-                {
-                    int y = 0;
-                    foreach (var data in dataList)
-                    {
-                        if (y < x)
-                        {
-                            y++;
-                            continue;
-                        } 
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@Name", data.Key);
-                        cmd.ExecuteNonQuery();
-                    }
+                {                    
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@Name", data);
+                    cmd.ExecuteNonQuery();                    
                 }
             }
         }
-        public void InsertVariableData(Dictionary<string, int> dataList, int x)
+        public void InsertVariableData(string data)
         {
             using (var conn = new SqliteConnection(_connectionString))
             {
@@ -239,25 +242,16 @@ namespace project1
 
                 using (var cmd = new SqliteCommand(query, conn))
                 {
-                    int y = 0;
-                    foreach (var data in dataList)
-                    {
-                        if (y < x)
-                        {
-                            y++;
-                            continue;
-                        }
-                        string name = data.Key.Split('|')[0];
-                        string UnitID = data.Key.Split('|')[1];
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@UnitID", UnitID);
-                        cmd.Parameters.AddWithValue("@Name", name);
-                        cmd.ExecuteNonQuery();
-                    }
+                    string name = data.Split('|')[0];
+                    string UnitID = data.Split('|')[1];
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@UnitID", UnitID);
+                    cmd.Parameters.AddWithValue("@Name", name);
+                    cmd.ExecuteNonQuery();                    
                 }
             }
         }
-        public void InsertUnitsData(Dictionary<string, int> dataList, int x)
+        public void InsertUnitsData(string data)
         {
             using (var conn = new SqliteConnection(_connectionString))
             {
@@ -268,23 +262,14 @@ namespace project1
 
                 using (var cmd = new SqliteCommand(query, conn))
                 {
-                    int y = 0;
-                    foreach (var data in dataList)
-                    {
-                        if (y < x)
-                        {
-                            y++;
-                            continue;
-                        }
-
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@unit_Name", data.Key);
-                        cmd.ExecuteNonQuery();
-                    }
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@unit_Name", data);
+                    cmd.ExecuteNonQuery();
+                    
                 }
             }
         }
-        public void InsertSiteData(List<site> dataList)
+        public void InsertSiteData(site data)
         {
             using (var conn = new SqliteConnection(_connectionString))
             {
@@ -295,13 +280,10 @@ namespace project1
 
                 using (var cmd = new SqliteCommand(query, conn))
                 {
-                    foreach (var data in dataList)
-                    {
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@Chainage", data.Chainage);
-                        cmd.Parameters.AddWithValue("@WO_id", data.WO_id);
-                        cmd.ExecuteNonQuery();
-                    }
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@Chainage", data.Chainage);
+                    cmd.Parameters.AddWithValue("@WO_id", data.WO_id);
+                    cmd.ExecuteNonQuery();                    
                 }
             }
         }
