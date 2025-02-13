@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -54,8 +55,8 @@ namespace project1
 
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Title = "Выберите файл",
-                Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*"
+                Title = "Выберите файл Базы Данных",
+                Filter = "Все файлы (*.*)|*.*"
             };
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -74,6 +75,8 @@ namespace project1
                 variables = db.LoadVariables();
                 units = db.LoadUnits();
                 waterObjects = db.LoadWaterObjects();
+               // site_dict = db.
+
                 //Запоминаем количество добавленных данных на этом этапе
                 Load_data_button.Enabled = true;
             }
@@ -103,9 +106,9 @@ namespace project1
             for (int ii = 21; ii <= line.Length - 20; ii += 20)
             {
                 if (line.Substring(ii, 20).Trim() == null) continue;
-                if (wordcount == 43) {
-                    Console.Write(1);
-                }                
+                //if (wordcount == 43) {
+                //    Console.Write(1);
+                //}                
                 words[wordcount++] = line.Substring(ii, 20).Trim();
             }
             return words;
@@ -113,15 +116,15 @@ namespace project1
 
         private async void DataProcessing(string filePath, string database_filepath)
         {
-            DateTime DCD = File.GetCreationTime(filePath);
+            DateTime DCD = File.GetCreationTime(filePath); //  будет сохраняться как dts - дата старта расчета
             DatabaseManager db = new DatabaseManager(database_filepath);
             string line_river_name = "";
             string line_chainage = "";            
             string line_item = "";
             string line_unit = "";
-            List<string> lines5 = new List<string>();
-            try
-            {
+            List<string> dataLines = new List<string>();
+            //try
+            //{
                 using (StreamReader reader = new StreamReader(filePath))
                 {
                     string line;
@@ -130,7 +133,9 @@ namespace project1
                     {
                         if (line.Length == 0 || line.StartsWith("Static")) continue;
                         if (line.Trim().StartsWith("River Name"))
+                        {
                             line_river_name = line;
+                        }
                         if (line.Trim().StartsWith("Chainage"))
                         {
                             line_chainage = line;
@@ -149,7 +154,7 @@ namespace project1
                             continue;
                         }
                         if (data_region && !line.StartsWith("-"))
-                            lines5.Add(Regex.Replace(line.Trim(), @"\s+", " "));                        
+                            dataLines.Add(Regex.Replace(line.Trim(), @"\s+", " "));                        
                     }
                 }
                 //разбиваем строки на слова
@@ -196,44 +201,41 @@ namespace project1
                     if (site_dict.ContainsKey(waterObjects[river_names[j]].ToString() + "|" + chainages[j])) continue;                    
                     int id = db.InsertSiteData(chainages[j], waterObjects[river_names[j]].ToString());
                     site_dict.Add(waterObjects[river_names[j]].ToString() + "|" + chainages[j], id);
-                }  
-                //заполняем main_Table
-                foreach (string line in lines5)
+                }
+
+            string decSep = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+            //CultureInfo.CurrentCulture.
+            //заполняем main_Table
+            foreach (string line in dataLines)
+            {
+                if (line == "") continue;
+                var words = line.Split(' ');
+                for (int j = 2; j < words.Length; j++)
                 {
-                    if (line == "") continue;
-                    var words = line.Split(' ');
-                    for (int j = 2; j < words.Length; j++)
+                    string key = waterObjects[river_names[j - 2]] + "|" + chainages[j - 2];
+                    int temp = site_dict[key];
+                    main_table data = new main_table
                     {
-                        string key = waterObjects[river_names[j - 2]] + "|" + chainages[j - 2];
-                        int temp = site_dict[key];
-                        main_table data = new main_table
-                        {
-                            Id = -1, //далее нигде не используется (рудимент предыдущих версий кода, можно избавится если передавать знчения напрямую)
-                            dtS = DCD,
-                            dtA = Convert.ToDateTime(words[0] + " " + words[1]),
-                            site_ID = site_dict[waterObjects[river_names[j - 2]] + "|" + chainages[j - 2]],
-                            var_ID = units[units_lines[j - 2]],
-                            value = Convert.ToDouble(words[j]),
-                            setting_ID = null
-                        };
-                        int id = db.InsertMainTableData(data);
-                        main_Table.Add(new main_table
-                        {
-                            Id = id,
-                            dtS = DCD,
-                            dtA = Convert.ToDateTime(words[0] + " " + words[1]),
-                            site_ID = site_dict[waterObjects[river_names[j - 2]] + "|" + chainages[j - 2]],
-                            var_ID = units[units_lines[j - 2]],
-                            value = Convert.ToDouble(words[j]),
-                            setting_ID = null
-                        });
-                    }
+                        Id = -1, //далее нигде не используется (рудимент предыдущих версий кода, можно избавится если передавать знчения напрямую)
+                        dtS = DCD,
+                        dtA = Convert.ToDateTime(words[0] + " " + words[1]),
+                        site_ID = site_dict[waterObjects[river_names[j - 2]] + "|" + chainages[j - 2]],
+                        var_ID = units[units_lines[j - 2]],
+                        value = Convert.ToDouble(
+                            decSep == "." ? words[j].Replace(",", ".") : words[j].Replace(".", ",")
+                            ),
+                        setting_ID = null
+                    };
+                    int id = db.InsertMainTableData(data);
+                    data.Id = id;
+                    main_Table.Add(data);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при чтении файла: {ex.Message}");
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show($"Ошибка при чтении файла: {ex.Message}");
+            //}
         }
         #endregion
     }

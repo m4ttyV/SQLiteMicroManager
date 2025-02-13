@@ -236,25 +236,22 @@ namespace project1
                     cmd.Parameters.AddWithValue("@Name", data);
                     cmd.ExecuteNonQuery();
                 }
+                conn.Close();
+                conn.Open();
                 int id = 0;
-                try
-                {
-                    query = "SELECT Id FROM " + water_object_table_name + " WHERE Name = @Name";
-                    using (var cmd = new SqliteCommand(query, conn))
-                    using (var reader = cmd.ExecuteReader())
-                        while (reader.Read())
-                        {
-                            cmd.Parameters.Clear();
-                            cmd.Parameters.AddWithValue("@Name", data);
-                            cmd.ExecuteNonQuery();
-                            id = reader.GetInt32(0);
-                        }
-                    return id;
-                }
-                catch
-                {
-                    return 1;
-                }
+
+                query = "SELECT Id FROM " + water_object_table_name + " WHERE Name = @Name";
+                using (var cmd = new SqliteCommand(query, conn))
+                using (var reader = cmd.ExecuteReader())
+                    while (reader.Read())
+                    {
+                        cmd.Parameters.Clear();
+                        cmd.Parameters.AddWithValue("@Name", data);
+                        cmd.ExecuteNonQuery();
+                        id = reader.GetInt32(0);
+                    }
+                return id;
+
             }
         }
 
@@ -275,6 +272,7 @@ namespace project1
                     cmd.Parameters.AddWithValue("@UnitID", UnitID);
                     cmd.Parameters.AddWithValue("@Name", name);
                     cmd.ExecuteNonQuery();
+                    
                 }
                 int id = 0;
                 try
@@ -292,12 +290,26 @@ namespace project1
                             cmd.ExecuteNonQuery();
                             id = reader.GetInt32(0);
                         }
-                    return id;
+                    
                 }
                 catch
                 {
-                    return 1;
+                    System.Threading.Thread.Sleep(500);
+                    query = "SELECT Id FROM " + variables_table_name + " WHERE Name = @Name AND UnitID = @UnitID";
+                    using (var cmd = new SqliteCommand(query, conn))
+                    using (var reader = cmd.ExecuteReader())
+                        while (reader.Read())
+                        {
+                            string name = data.Split('|')[0];
+                            string UnitID = data.Split('|')[1];
+                            cmd.Parameters.Clear();
+                            cmd.Parameters.AddWithValue("@UnitID", UnitID);
+                            cmd.Parameters.AddWithValue("@Name", name);
+                            cmd.ExecuteNonQuery();
+                            id = reader.GetInt32(0);
+                        }
                 }
+                return id;
             }
         }
 
