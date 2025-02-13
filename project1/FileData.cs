@@ -216,34 +216,29 @@ namespace project1
                     cmd.Parameters.AddWithValue("@site_ID", data.site_ID);
                     cmd.Parameters.AddWithValue("@var_ID", data.var_ID);
                     cmd.Parameters.AddWithValue("@value", data.value);
-                    cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : "");
                     cmd.ExecuteNonQuery();
                 }
                 int id = 0;
-                try
+                query = "SELECT Id FROM " + main_table_table_name + " WHERE dtS = @dtS AND dtA = @dtA AND site_ID = @site_ID AND var_ID = @var_ID AND value = @value AND setting_ID = @setting_ID";
+                using (var cmd = new SqliteCommand(query, conn))
                 {
-                    query = "SELECT Id FROM " + main_table_table_name + " WHERE dtS = @dtS AND dtA = @dtA AND site_ID = @site_ID AND var_ID = @var_ID AND value = @value AND setting_ID = @setting_ID";
-                    using (var cmd = new SqliteCommand(query, conn))
-                    {
-                        cmd.Parameters.Clear();
-                        cmd.Parameters.AddWithValue("@dtS", data.dtS.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.Parameters.AddWithValue("@dtA", data.dtA.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.Parameters.AddWithValue("@site_ID", data.site_ID);
-                        cmd.Parameters.AddWithValue("@var_ID", data.var_ID);
-                        cmd.Parameters.AddWithValue("@value", data.value);
-                        cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : DBNull.Value);
-                        using (var reader = cmd.ExecuteReader())
-                            while (reader.Read())
-                            {
-                                id = reader.GetInt32(0);
-                            }
-                    }
-                    return id;
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("@dtS", data.dtS.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@dtA", data.dtA.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@site_ID", data.site_ID);
+                    cmd.Parameters.AddWithValue("@var_ID", data.var_ID);
+                    cmd.Parameters.AddWithValue("@value", data.value);
+                    cmd.Parameters.AddWithValue("@setting_ID", data.setting_ID.HasValue ? (object)data.setting_ID.Value : "");
+                    using (var reader = cmd.ExecuteReader())
+                        if (reader.Read())
+                        {
+                            id = reader.GetInt32(0);
+                            return id;
+                        }
                 }
-                catch
-                {
-                    return 1;
-                }                
+                return id;
+                        
             }
         }
 
