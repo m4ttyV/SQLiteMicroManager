@@ -148,7 +148,32 @@ namespace project1
 
             return units;
         }
-        
+        public Dictionary<string, int> LoadSites()
+        {
+            var site = new Dictionary<string, int>();
+
+            using (var conn = new SqliteConnection(_connectionString))
+            {
+                conn.Open();
+                string query = "SELECT Id, Chainage, WO_id FROM " + site_table_name;
+                using (var cmd = new SqliteCommand(query, conn))
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int id = reader.GetInt32(0);   // Чтение id
+                            string Chainage = reader.GetString(1); // Чтение name
+                            string WO_id = reader.GetString(2); // Чтение UnitID
+                            site[WO_id + '|' + Chainage] = id; // Добавление в словарь
+                        }
+                    }
+                }
+            }
+
+            return site;
+        }
+
         public Dictionary<string, int> LoadWaterObjects()
         {
             var waterObjects = new Dictionary<string, int>();

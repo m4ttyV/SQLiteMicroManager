@@ -75,7 +75,7 @@ namespace project1
                 variables = db.LoadVariables();
                 units = db.LoadUnits();
                 waterObjects = db.LoadWaterObjects();
-               // site_dict = db.
+                site_dict = db.LoadSites();
 
                 //Запоминаем количество добавленных данных на этом этапе
                 Load_data_button.Enabled = true;
