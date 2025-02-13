@@ -42,7 +42,9 @@ namespace project1
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 string filePath = openFileDialog.FileName;
+                DateTime now = DateTime.Now;
                 DataProcessing(filePath, database_filepath);
+                MessageBox.Show($"Обработка заверщена за {(DateTime.Now - now).TotalSeconds} секунд");
             }
             else
             {
@@ -114,7 +116,7 @@ namespace project1
             return words;
         }
 
-        private async void DataProcessing(string filePath, string database_filepath)
+        private void DataProcessing(string filePath, string database_filepath)
         {
             DateTime DCD = File.GetCreationTime(filePath); //  будет сохраняться как dts - дата старта расчета
             DatabaseManager db = new DatabaseManager(database_filepath);
@@ -129,7 +131,7 @@ namespace project1
                 {
                     string line;
                     bool data_region = false;
-                    while ((line = await reader.ReadLineAsync()) != null) // разбиваем файл на блоки и запоминаем содержимое
+                    while ((line = reader.ReadLine()) != null) // разбиваем файл на блоки и запоминаем содержимое
                     {
                         if (line.Length == 0 || line.StartsWith("Static")) continue;
                         if (line.Trim().StartsWith("River Name"))
