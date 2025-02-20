@@ -70,6 +70,7 @@ namespace project1
                 main_Table.Clear();
                 site_dict.Clear();
                 settings.Clear();
+
                 //Загружаем файл БД
                 database_filepath = openFileDialog.FileName;
                 DatabaseManager db = new DatabaseManager(database_filepath);
@@ -228,11 +229,14 @@ namespace project1
                             ),
                         setting_ID = null
                     };
-                    int id = db.InsertMainTableData(data);
-                    data.Id = id;
+                   // int id = db.InsertMainTableData(data);
+                   // data.Id = id;
                     main_Table.Add(data);
                 }
+
+               
             }
+            db.InsertMainTableData(main_Table);
             //}
             //catch (Exception ex)
             //{

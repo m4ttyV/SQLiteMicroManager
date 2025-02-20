@@ -242,6 +242,44 @@ namespace project1
             }
         }
 
+
+        public void InsertMainTableData(List<main_table> data)
+        {
+            using (var conn = new SqliteConnection(_connectionString))
+            {
+                conn.Open();
+                using (var transaction = conn.BeginTransaction())
+                {
+                    conn.Open();
+                    string query = $@"
+                INSERT INTO {main_table_table_name} (dtS, dtA, site_ID, var_ID, value, setting_ID)
+                VALUES (@dtS, @dtA, @site_ID, @var_ID, @value, @setting_ID)";
+                    var cmd = new SqliteCommand(query, conn, transaction);
+                    
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@dtS" });
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@dtA" });
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@site_ID" });
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@var_ID" });
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@value" });
+                    cmd.Parameters.Add(new SqliteParameter() { ParameterName = "@setting_ID" });
+
+                 
+                    foreach(var item in data)
+                    {
+                        cmd.Parameters["@dtS"].Value = item.dtS;
+                        cmd.Parameters["@dtA"].Value = item.dtA;
+                        cmd.Parameters["@site_ID"].Value = item.site_ID;
+                        cmd.Parameters["@var_ID"].Value = item.var_ID;
+                        cmd.Parameters["@value"].Value = item.value;
+                        cmd.Parameters["@setting_ID"].Value = item.setting_ID.HasValue ? (object)item.setting_ID.Value : "";
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+                }
+
+            }
+        }
         public int InsertWaterObjectData(string data)
         {
             using (var conn = new SqliteConnection(_connectionString))
@@ -289,24 +327,23 @@ namespace project1
                     cmd.Parameters.AddWithValue("@UnitID", UnitID);
                     cmd.Parameters.AddWithValue("@Name", name);
                     cmd.ExecuteNonQuery();
-
                 }
 
-                query = "SELECT Id FROM " + variables_table_name + " WHERE Name = @Name AND UnitID = @UnitID";
-                using (var cmd = new SqliteCommand(query, conn))
-                {
-                    string name = data.Split('|')[0];
-                    string UnitID = data.Split('|')[1];
-                    cmd.Parameters.AddWithValue("@UnitID", UnitID);
-                    cmd.Parameters.AddWithValue("@Name", name);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            return reader.GetInt32(0);
-                        }
-                    }
-                }
+                //query = "SELECT Id FROM " + variables_table_name + " WHERE Name = @Name AND UnitID = @UnitID";
+                //using (var cmd = new SqliteCommand(query, conn))
+                //{
+                //    string name = data.Split('|')[0];
+                //    string UnitID = data.Split('|')[1];
+                //    cmd.Parameters.AddWithValue("@UnitID", UnitID);
+                //    cmd.Parameters.AddWithValue("@Name", name);
+                //    using (var reader = cmd.ExecuteReader())
+                //    {
+                //        if (reader.Read())
+                //        {
+                //            return reader.GetInt32(0);
+                //        }
+                //    }
+                //}
                 return 0;
             }
         }
